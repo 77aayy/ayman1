@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>نظام تقفيلة الصندوق – أيمن أبو ورده</title>
+
+<link id="fp-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" onerror="this.dataset.offline='1'">
+<script id="fp-js" src="https://cdn.jsdelivr.net/npm/flatpickr" onerror="this.dataset.offline='1'"></script>
+<script id="fp-ar" src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js" onerror="this.dataset.offline='1'"></script>
+
+<script id="xlsx-js" src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js" onerror="this.dataset.offline='1'"></script>
+
+<style>
+:root{
+  --gold:#d4af37; --gold-soft:#facc15; --good:#22c55e; --bad:#ef4444;
+  --royal1:#1d4ed8; --royal2:#2563eb; --accent:#2563eb;
+  --bg1:#0f172a; --bg2:#1b2537; --panel:#1e293b; --border:#334155;
+}
+*{box-sizing:border-box}
+body{
+  font-family:"IBM Plex Sans Arabic",system-ui,Segoe UI,Arial; margin:0;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2)); color:#e2e8f0; min-height:100vh;
+}
+header{
+  background:rgba(30,41,59,.9); padding:16px 18px; display:flex; justify-content:space-between; align-items:center;
+  border-bottom:1px solid var(--border); color:var(--gold);
+}
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:20px;
+    /* إضافة تنسيق ليصبح المحتوى عمودياً */
+    flex-direction: column; 
+    align-items: flex-start;
+}
+/* تنسيق جديد لإظهار النص الإضافي أسفل العنوان */
+.main-title-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+}
+.main-title {
+    font-size: 20px; /* نفس الحجم الأصلي */
+    font-weight: 700;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+}
+.sub-title {
+    font-size: 16px; 
+    font-weight: 600;
+    color: #fef3c7;
+    opacity: 0.9;
+    margin-top: 4px;
+}
+.dev-info {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+.user-info{text-align:right}
+.user-pill{
+  background:rgba(212,175,55,.12); border:1px solid rgba(212,175,55,.35); color:#fef3c7;
+  padding:6px 10px; border-radius:999px; font-weight:700; font-size:14px
+}
+.last-update{font-size:13px;color:var(--gold-soft);opacity:.9;margin-top:4px}
+
+.btn{border:none;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:800;letter-spacing:.2px;transition:.2s}
+.btn:hover{transform:translateY(-1px)}
+.btn-gold{background:linear-gradient(135deg,#f7d24c,#d4af37); color:#1f2937; box-shadow:0 0 14px rgba(212,175,55,.35)}
+.btn-gold:hover{box-shadow:0 0 18px rgba(212,175,55,.6)}
+.btn-gold[disabled]{opacity:.6;cursor:not-allowed;background:gray;color:#fff; box-shadow:none}
+.btn-blue{background:linear-gradient(135deg,var(--royal2),var(--royal1)); color:#fff; box-shadow:0 0 14px rgba(37,99,235,.35)}
+.btn-blue:hover{box-shadow:0 0 18px rgba(37,99,235,.6)}
+.btn-gray{background:rgba(148,163,184,.25); color:#e2e8f0; border:1px solid rgba(255,255,255,.15)}
+
+.wrap{max-width:1500px;margin:26px auto;padding:0 16px}
+.card{background:var(--panel);border-radius:16px;padding:18px;box-shadow:0 0 25px rgba(212,175,55,.15);border:1px solid var(--border)}
+
+table{width:100%;border-collapse:collapse;font-size:18px;color:#e2e8f0}
+th,td{border:1px solid var(--border);padding:10px;text-align:center;vertical-align:middle}
+thead th{background:linear-gradient(135deg,var(--accent),#1d4ed8);color:#fff}
+td[contenteditable]{background:#0b1220; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+td[contenteditable]:focus{box-shadow:0 0 0 2px rgba(250,204,21,.5) inset; transition:box-shadow 1s}
+.employee-box{
+  border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:180px;background:#0b1220;outline:none;position:relative
+}
+/* Placeholder ذهبي متحرك */
+[data-ph]:empty::before{
+  content:attr(data-ph);position:absolute;left:10px;top:8px;color:rgba(250,204,21,.65);pointer-events:none;transition:.25s ease
+}
+[data-ph]:focus::before{opacity:.0;transform:translateY(-10px)}
+/* تنسيق التقويم الزجاجي الجديد */
+.date-picker{
+  /* Base properties */
+  width:160px;padding:8px 10px;border-radius:12px; 
+  color:#e2e8f0;outline:none;
+  /* Glassmorphism/Professional Look */
+  background: rgba(255, 255, 255, 0.08); /* Light translucent background */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle white border */
+  backdrop-filter: blur(8px); /* The glassy effect */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Soft shadow */
+  transition: all 0.3s ease; /* Smooth hover effects */
+}
+.date-picker:focus{
+    background: rgba(255, 255, 255, 0.15); /* Brighter when focused */
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.5); /* Gold ring for focus */
+}
+.date-picker::placeholder{color:rgba(250,204,21,.65)}
+tfoot td{font-weight:800}
+
+/* تحليل الانحراف داخل الجدول */
+.breakdown-wrap{background:rgba(212,175,55,.08);border-radius:10px;padding:8px;margin-top:6px}
+.breakdown-table{width:100%;border-collapse:separate;border-spacing:8px}
+.breakdown-table td{background:rgba(15,23,42,.55);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;font-weight:800}
+.breakdown-pos{color:var(--good)} .breakdown-neg{color:var(--bad)} .breakdown-total{color:var(--gold-soft);font-weight:900}
+
+/* تنبيه ذكي أسفل الجدول */
+#varianceNotice{
+  text-align:center; background:linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,140,0,.15));
+  border:1px solid rgba(255,215,0,.35); color:#facc15; font-weight:800;
+  padding:10px; border-radius:10px; margin-top:12px; display:none
+}
+#varianceNotice.show{display:block; animation:shake .45s ease}
+@keyframes shake{
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)}
+  60%{transform:translateX(-3px)} 80%{transform:translateX(3px)}
+}
+
+/* إشعار علوي عام (لو احتجناه مستقبلًا) */
+#alertBox{
+  position:fixed; top:18px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.82);
+  color:#fff; padding:12px 22px; border-radius:14px; font-weight:800; font-size:18px; text-align:center;
+  box-shadow:0 0 22px rgba(255,215,0,.45); opacity:0; transition:opacity .4s ease; z-index:99999
+}
+#alertBox.show{opacity:1}
+
+/* Modal تأكيد الإغلاق */
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,15,25,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:99998}
+.modal-backdrop.show{display:flex;animation:fadeIn .18s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-card{
+  width:min(520px,90vw); background:linear-gradient(135deg, rgba(21,29,48,.92), rgba(35,46,74,.86));
+  border:1px solid rgba(212,175,55,.35); border-radius:18px; padding:18px; color:#f1f5f9; box-shadow:0 10px 36px rgba(0,0,0,.55);
+  transform:scale(.9); animation:zoomIn .2s ease forwards
+}
+@keyframes zoomIn{to{transform:scale(1)}}
+.modal-title{font-weight:900;color:#fef3c7;margin-bottom:8px}
+.modal-sub{opacity:.9}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.btn-affirm{background:linear-gradient(135deg,#f7d24c,#d4af37);color:#1f2937;border:none;padding:10px 14px;border-radius:10px;font-weight:900;cursor:pointer}
+.btn-cancel{background:rgba(148,163,184,.25);color:#e2e8f0;border:1px solid rgba(255,255,255,.15);padding:10px 14px;border-radius:10px;font-weight:800;cursor:pointer}
+
+/* Cash calc */
+.cash-calc{background:rgba(15,23,42,.7);border-radius:16px;margin-top:20px;padding:18px;text-align:center;backdrop-filter:blur(12px);
+  box-shadow:0 0 24px rgba(212,175,55,.12); border:1px solid rgba(255,255,255,.08)}
+.cash-calc h3{color:var(--gold);margin:0 0 8px}
+.cash-calc table{width:520px;max-width:100%;margin:auto;border-collapse:collapse;color:#fff}
+.cash-calc th,.cash-calc td{border:1px solid var(--border);padding:8px}
+.cash-calc td[contenteditable]{background:rgba(255,255,255,.07);border-radius:6px}
+.cash-calc tfoot td{font-weight:900;color:var(--gold)}
+
+/* سجلات الإغلاق - تمييز الصفوف المغلقة */
+.closed-row { background: rgba(51, 65, 85, 0.5); font-style: italic; opacity: 0.8; }
+.closed-row td { background: none !important; color: #cbd5e1; }
+
+
+footer{text-align:center;padding:15px;color:var(--gold);border-top:1px solid rgba(255,255,255,.08);margin:20px 16px 12px;font-size:15px}
+/* تنسيق الزر الجديد في التذييل */
+#closeBtnWrap { text-align: center; padding-top: 14px; }
+#closeBtnWrap .btn-gold {
+  width: 100%;
+  max-width: 400px;
+  display: block;
+  margin: 0 auto;
+}
+#closeBtnWrap span {
+    display: block;
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--gold-soft);
+    font-weight: 500;
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="header-left">
+    <div class="main-title-wrap">
+      <div class="main-title">
+        <span style="font-size:20px;margin-inline-end:8px">🏛</span>
+        نظام تقفيلة الصندوق 
+      </div>
+      <div class="sub-title"> بواسطة - أيمن أبو ورده</div>
+      <div class="dev-info"> 0570707121</div>
+    </div>
+  </div>
+  <div class="user-info">
+    <div class="user-pill" id="userName">المستخدم الحالي: لم يتم تحديد الموظف</div>
+    <div class="last-update" id="lastUpdate">🕓 آخر تحديث: —</div>
+  </div>
+</header>
+
+<div id="alertBox"></div>
+
+<div class="wrap">
+  <div class="card">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th>م</th>
+          <th>المصروف اليومي فقط</th>
+          <th>اسم الموظف</th>
+          <th>التاريخ/وقت الإغلاق</th>
+          <th>كاش</th>
+          <th>Visa</th>
+          <th>MasterCard</th>
+          <th>American</th>
+          <th>مدي</th>
+          <th>تحويل بنك</th>
+          <th>الإيراد على البرنامج</th>
+          <th>الانحراف</th>
+        </tr>
+      </thead>
+      <tbody id="mainTableBody">
+        </tbody>
+
+      <tfoot>
+        <tr>
+          <td colspan="5" style="text-align:start">إجمالي المصروف اليومي: <span id="totalExpense">0</span></td>
+          <td colspan="6" style="text-align:end">إجمالي الانحراف</td>
+          <td id="totalVariance">0</td>
+        </tr>
+        <tr>
+          <td colspan="12">
+            <div class="breakdown-wrap">
+              <div style="font-weight:900;color:var(--gold-soft);margin-bottom:6px">📊 تحليل الانحراف التفصيلي</div>
+              <table class="breakdown-table">
+                <tr>
+                  <td>💵 الكاش: <span id="varCash">0</span></td>
+                  <td>💳 الشبكة: <span id="varNet">0</span></td>
+                  <td>🧾 المصروف: <span id="varExp">0</span></td>
+                  <td>🏦 التحويل البنكي: <span id="varBank">0</span></td>
+                  <td>⚖️ إجمالي الانحراف: <span id="varTotal" class="breakdown-total">0</span></td>
+                </tr>
+              </table>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="12" style="text-align:center; padding-top:14px; border:none">
+            <div id="closeBtnWrap">
+                <button id="closeBtn" class="btn btn-gold">🏛 إغلاق صندوق الموظف... غير محدد</button>
+                <span>يتم إغلاق الصندوق تلقائياً عند الضغط على زر "إغلاق صندوق الموظف" في الأسفل.</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="12" style="text-align:center; padding-top:14px; border:none">
+            <button id="exportBtn" class="btn btn-blue">📊 تصدير إلى Excel</button>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div id="varianceNotice"></div>
+
+    <div class="cash-calc">
+      <h3>حاسبة الكاش</h3>
+      <table id="cashCalc">
+        <thead><tr><th>الفئة</th><th>العدد</th></tr></thead>
+        <tbody>
+          <tr><td>500</td><td contenteditable></td></tr>
+          <tr><td>100</td><td contenteditable></td></tr>
+          <tr><td>50</td><td contenteditable></td></tr>
+          <tr><td>20</td><td contenteditable></td></tr>
+          <tr><td>10</td><td contenteditable></td></tr>
+          <tr><td>5</td><td contenteditable></td></tr>
+          <tr><td>1</td><td contenteditable></td></tr>
+        </tbody>
+        <tfoot><tr><td>المجموع</td><td id="cashTotal">0</td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  أيمن أبو ورده – إدارة التشغيل | Operations Management<br>
+  🕓 <span id="dateNow"></span> | الإصدار 1.0 – 2025
+</footer>
+
+<audio id="sndPlus" preload="auto" src="data:audio/mp3;base64://uQZAAAAAAAAAAAAAAAAAAAA..."></audio>
+<audio id="sndMinus" preload="auto" src="data:audio/mp3;base64://uQZAAAAAAAAAAAAAAAAAAAA..."></audio>
+<audio id="sndClose" preload="auto" src="data:audio/mp3;base64://uQZAAAAAAAAAAAAAAAAAAAA..."></audio>
+
+<div id="confirmModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-title" id="modalTitle">تأكيد إغلاق الصندوق</div>
+    <div class="modal-sub">هل أنت متأكد أنك تريد إغلاق الصندوق الآن؟<br>بعد الإغلاق سيتم حفظ البيانات وإضافة صف جديد.</div>
+    <div class="modal-actions">
+      <button id="modalCancel" class="btn-cancel">إلغاء</button>
+      <button id="modalConfirm" class="btn-affirm">تأكيد الإغلاق</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = 'cashRegisterData'; 
+const mainBody = document.getElementById('mainTableBody');
+let currentRecordRow = null; 
+let recordCounter = 0; 
+let currentEmployeeName = "غير محدد"; // متغير لتخزين اسم الموظف الحالي
+
+function toNum(v){return parseFloat(String(v).replace(/[^\d.-]/g,''))||0;}
+function fmtEN(n){return new Intl.NumberFormat('en-US').format(n);}
+
+// دالة تحديث نص زر الإغلاق
+function updateCloseButtonText(name){
+  const btn = document.getElementById('closeBtn');
+  const employeeName = name.trim() || "غير محدد";
+  btn.textContent = `🏛 إغلاق صندوق الموظف... ${employeeName}`;
+}
+
+// دالة تحديث اسم المستخدم وشريط المعلومات
+function setUser(name){
+  currentEmployeeName = name.trim() || "لم يتم تحديد الموظف";
+  document.getElementById("userName").textContent = "المستخدم الحالي: " + (currentEmployeeName === "لم يتم تحديد الموظف" ? currentEmployeeName : currentEmployeeName);
+  document.getElementById("lastUpdate").textContent = "🕓 آخر تحديث: " + new Date().toLocaleString('ar-EG');
+  updateCloseButtonText(currentEmployeeName);
+}
+function setNoticeColor(el, val){
+  if(val>0){ el.style.color="#0ea5e9"; el.style.borderColor="rgba(250,204,21,.45)"; el.style.background="linear-gradient(135deg,rgba(250,204,21,.18),rgba(56,189,248,.12))"; }
+  else if(val<0){ el.style.color="#f87171"; el.style.borderColor="rgba(248,113,113,.45)"; el.style.background="linear-gradient(135deg,rgba(248,113,113,.18),rgba(250,204,21,.12))"; }
+}
+
+/* تفعيل Flatpickr إن وُجد، وإلا استخدام تقويم داخلي */
+function initCalendars(scope=document){
+  const els = scope.querySelectorAll('.date-picker');
+  if(window.flatpickr){
+    const locale = window.flatpickr.l10ns?.ar || {};
+    window.flatpickr(els,{dateFormat:"Y-m-d",locale:locale,allowInput:true});
+  }else{
+    // تقويم داخلي بسيط: عند التركيز يعرض date input محلي
+    els.forEach(inp=>{
+      inp.addEventListener('focus',()=>{
+        const t=inp.type; inp.type='date'; inp.showPicker && inp.showPicker();
+        inp.addEventListener('blur',()=>{ if(!inp.value) inp.type=t; },{once:true});
+      });
+    });
+  }
+}
+
+/* إجمالي المصروف */
+function sumDailyExpense(){
+  let total=0;
+  // نحسب فقط من الصفوف غير المغلقة (الصف الحالي)
+  document.querySelectorAll('#mainTableBody tr:not(.closed-row)').forEach(tr=> total+=toNum(tr.cells[1].innerText));
+  document.getElementById('totalExpense').textContent=fmtEN(total);
+  return total;
+}
+
+/* الحسابات وفق المعادلة المعتمدة:
+   الانحراف = (الكاش + الشبكة + التحويل + المصروف) - الإيراد على البرنامج
+*/
+function recalc(){
+  const rows=document.querySelectorAll('#mainTableBody tr:not(.closed-row)');
+  let totalVar=0,cashVar=0,netVar=0,bankVar=0,expVar=0;
+  
+  // نعيد حساب الانحراف فقط للصفوف الحالية القابلة للتحرير
+  rows.forEach(tr=>{
+    const t=tr.querySelectorAll('td'); if(t.length<12) return;
+    const E=toNum(t[1].innerText);
+    const C=toNum(t[4].innerText);
+    const N=toNum(t[5].innerText)+toNum(t[6].innerText)+toNum(t[7].innerText)+toNum(t[8].innerText);
+    const B=toNum(t[9].innerText);
+    const P=toNum(t[10].innerText);
+    const variance=(C+N+B+E)-P;
+    
+    // المجموع التجميعي يتم حسابه فقط من الصفوف الحالية
+    totalVar+=variance;
+    cashVar+=C; netVar+=N; bankVar+=B; expVar+=E;
+    
+    const cell=t[11];
+    cell.textContent=fmtEN(variance);
+    cell.style.color=variance>0?"#22c55e":variance<0?"#ef4444":"#e2e8f0";
+  });
+
+  // تحديث إجمالي الانحراف في الـ tfoot
+  document.getElementById('totalVariance').textContent=fmtEN(totalVar);
+  document.getElementById('varCash').textContent=fmtEN(cashVar);
+  document.getElementById('varNet').textContent=fmtEN(netVar);
+  document.getElementById('varBank').textContent=fmtEN(bankVar);
+  document.getElementById('varExp').textContent=fmtEN(expVar);
+  document.getElementById('varTotal').textContent=fmtEN(totalVar);
+
+  // ألوان موجبة/سالبة في السطور التفصيلية
+  [["varCash",cashVar],["varNet",netVar],["varBank",bankVar],["varExp",expVar],["varTotal",totalVar]].forEach(([id,val])=>{
+    const el=document.getElementById(id); el.classList.remove('breakdown-pos','breakdown-neg');
+    if(val>0) el.classList.add('breakdown-pos'); else if(val<0) el.classList.add('breakdown-neg');
+  });
+
+  sumDailyExpense();
+
+  // تنبيه ذكي أسفل الجدول + صوت
+  const notice=document.getElementById("varianceNotice");
+  if(Math.abs(totalVar)!==0){
+    notice.innerHTML=`⚠️ يوجد فرق بين الإيراد الفعلي والإيراد على البرنامج = ${fmtEN(totalVar)} ريال<br>(يرجى مراجعة المبالغ)`;
+    setNoticeColor(notice,totalVar);
+    notice.classList.add("show");
+    try{
+      if(totalVar>0) document.getElementById('sndPlus').currentTime=0, document.getElementById('sndPlus').play();
+      else document.getElementById('sndMinus').currentTime=0, document.getElementById('sndMinus').play();
+    }catch(e){}
+    clearTimeout(notice._t);
+    notice._t=setTimeout(()=> notice.classList.remove("show"),5000);
+  }else{
+    notice.classList.remove("show");
+  }
+}
+
+/* حاسبة الكاش */
+function recalcCash(){
+  let total=0;
+  document.querySelectorAll('#cashCalc tbody tr').forEach(tr=> total+=toNum(tr.cells[0].innerText)*toNum(tr.cells[1].innerText) );
+  document.getElementById('cashTotal').textContent=fmtEN(total);
+}
+
+/* مراقبة إدخال اسم الموظف لتحديث المستخدم الحالي */
+function bindEmployeeSync(){
+  if(!currentRecordRow) return;
+  const box=currentRecordRow.querySelector('.employee-box');
+  if(!box) return;
+  const sync=()=> setUser(box.textContent.trim());
+  
+  // نربط الأحداث على عنصر اسم الموظف في الصف النشط
+  box.addEventListener('input',sync);
+  box.addEventListener('blur',sync);
+  
+  // قم بالتحديث الأولي في حالة كان هناك اسم محفوظ مسبقاً في الصف
+  sync(); 
+}
+
+/* ربط التحرير */
+function bindEditable(scope=document){
+  scope.querySelectorAll('[contenteditable]').forEach(el=>{
+    el.addEventListener('input',()=>{ 
+        // تحقق من أن العنصر داخل الصف الحالي (currentRecordRow)
+        if(currentRecordRow && currentRecordRow.contains(el)) {
+            recalc();
+        }
+    });
+  });
+  scope.querySelectorAll('#cashCalc td[contenteditable]').forEach(el=>{
+    el.addEventListener('input',()=>{ recalcCash(); });
+  });
+}
+
+// دالة بناء صف جديد
+function createNewRow(rowData = null) {
+    recordCounter++;
+    const tr = document.createElement('tr');
+    tr.dataset.recordId = recordCounter;
+    
+    // استخدام الاسم الحالي للموظف كقيمة مبدئية إذا لم يكن صف مغلق
+    const employeeName = rowData ? rowData.employee : (currentEmployeeName === "لم يتم تحديد الموظف" || currentEmployeeName === "غير محدد" ? "" : currentEmployeeName);
+    
+    // خلايا البيانات (11 خلية)
+    const emptyCellsHtml = `
+      <td contenteditable>${rowData ? rowData.expense : ''}</td>
+      <td><div class="employee-box" contenteditable>${employeeName}</div></td>
+      <td>${rowData ? rowData.closeTime : `<input type="text" class="date-picker" placeholder="اختر التاريخ…">`}</td>
+      <td contenteditable>${rowData ? rowData.cash : ''}</td>
+      <td contenteditable>${rowData ? rowData.visa : ''}</td>
+      <td contenteditable>${rowData ? rowData.masterCard : ''}</td>
+      <td contenteditable>${rowData ? rowData.american : ''}</td>
+      <td contenteditable>${rowData ? rowData.mada : ''}</td>
+      <td contenteditable>${rowData ? rowData.bankTransfer : ''}</td>
+      <td contenteditable>${rowData ? rowData.programRevenue : ''}</td>
+      <td class="variance">${rowData ? fmtEN(rowData.variance) : '0'}</td>
+    `;
+    
+    tr.innerHTML = `<td>${recordCounter}</td>` + emptyCellsHtml;
+
+    if (rowData) {
+        // إذا كان سجل مغلق، اجعله غير قابل للتحرير
+        tr.classList.add('closed-row');
+        tr.querySelectorAll('[contenteditable]').forEach(td => td.removeAttribute('contenteditable'));
+    } else {
+        // هذا هو الصف الحالي القابل للتحرير
+        currentRecordRow = tr;
+    }
+    
+    mainBody.appendChild(tr);
+    initCalendars(tr); // تهيئة التقويم في الصف الجديد
+    
+    if (!rowData) {
+        bindEditable(tr); // ربط أحداث التحرير بالصف الجديد
+        bindEmployeeSync(); // ربط تحديث اسم الموظف بالصف الجديد
+    }
+    
+    return tr;
+}
+
+// دالة حفظ السجل الحالي
+function saveRecord(closeTime) {
+    if (!currentRecordRow) return null;
+
+    const t = currentRecordRow.querySelectorAll('td');
+    const employeeBox = currentRecordRow.querySelector('.employee-box');
+    const dateInput = currentRecordRow.querySelector('.date-picker');
+
+    // تجميع البيانات
+    const record = {
+        id: currentRecordRow.dataset.recordId,
+        expense: toNum(t[1].innerText),
+        employee: employeeBox.textContent.trim(),
+        closeTime: closeTime, // نستخدم وقت الإغلاق الفعلي هنا
+        cash: toNum(t[4].innerText),
+        visa: toNum(t[5].innerText),
+        masterCard: toNum(t[6].innerText),
+        american: toNum(t[7].innerText),
+        mada: toNum(t[8].innerText),
+        bankTransfer: toNum(t[9].innerText),
+        programRevenue: toNum(t[10].innerText),
+        variance: toNum(t[11].innerText),
+        cashCalc: getCashCalcData()
+    };
+    
+    // حفظ السجل في LocalStorage
+    const records = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+    records.push(record);
+    localStorage.setItem(STORE_KEY, JSON.stringify(records));
+    
+    return record;
+}
+
+// دالة تحميل وعرض السجلات المحفوظة
+function loadRecords() {
+    const records = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+    records.forEach(record => {
+        // يجب إعادة تنسيق بيانات الصف هنا لاستخدامها في createNewRow
+        // نستخدم نفس تنسيق البيانات لتفادي التعقيد
+        const rowData = {
+            expense: record.expense,
+            employee: record.employee,
+            closeTime: record.closeTime,
+            cash: record.cash,
+            visa: record.visa,
+            masterCard: record.masterCard,
+            american: record.american,
+            mada: record.mada,
+            bankTransfer: record.bankTransfer,
+            programRevenue: record.programRevenue,
+            variance: record.variance
+        };
+        createNewRow(rowData); // إضافة السجلات القديمة أولاً
+    });
+}
+
+// دالة لتجميع بيانات حاسبة الكاش
+function getCashCalcData(){
+    const data = {};
+    document.querySelectorAll('#cashCalc tbody tr').forEach(tr=>{
+        const value = toNum(tr.cells[0].innerText);
+        const count = toNum(tr.cells[1].innerText);
+        if(count > 0) data[value] = count;
+    });
+    return data;
+}
+
+// دالة لتعبئة حاسبة الكاش من سجل مغلق (إذا احتجنا لعرضها في سجل مغلق)
+function setCashCalcData(data){
+    document.querySelectorAll('#cashCalc tbody tr').forEach(tr=>{
+        const value = toNum(tr.cells[0].innerText);
+        tr.cells[1].textContent = data[value] || '';
+    });
+    recalcCash();
+}
+
+
+/* تصدير: XLSX إن توفر، وإلا CSV */
+function tableToCSV(table){
+  const rows=[...table.querySelectorAll('tr')].map(tr=>[...tr.children].map(td=> `"${(td.innerText||'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  return rows;
+}
+function exportMain(){
+  const table=document.getElementById('mainTable');
+  if(window.XLSX){
+    const wb=XLSX.utils.table_to_book(table,{sheet:"تقفيلة الصندوق"});
+    XLSX.writeFile(wb,"تقفيلة_الصندوق.xlsx");
+  }else{
+    const csv=tableToCSV(table);
+    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download="تقفيلة_الصندوق.csv"; a.click(); URL.revokeObjectURL(url);
+  }
+}
+
+/* إغلاق الصندوق (Modal) */
+let isClosed=false;
+const modal=document.getElementById('confirmModal');
+function openModal(){ if(!isClosed) modal.classList.add('show'); }
+function closeModal(){ modal.classList.remove('show'); }
+document.getElementById('modalCancel').addEventListener('click',closeModal);
+document.getElementById('closeBtn').addEventListener('click',openModal); // ربط الزر الجديد في التذييل
+
+// دالة تأكيد الإغلاق الجديدة
+document.getElementById('modalConfirm').addEventListener('click',()=>{
+  closeModal(); 
+  if(isClosed) return;
+
+  // 1. تحديد وقت الإغلاق
+  const closeTime = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+  
+  // 2. حفظ السجل الحالي
+  const savedRecord = saveRecord(closeTime); 
+
+  // 3. تحويل الصف الحالي إلى سجل مغلق
+  if(currentRecordRow) {
+      currentRecordRow.classList.add('closed-row');
+      currentRecordRow.querySelectorAll('[contenteditable]').forEach(td => td.removeAttribute('contenteditable'));
+      
+      // تحديث خلية التاريخ/الوقت في الصف المغلق
+      const dateCell = currentRecordRow.cells[3];
+      dateCell.innerHTML = closeTime; // عرض التاريخ والوقت
+  }
+
+  // 4. إضافة صف جديد فارغ للعمليات الجديدة
+  createNewRow(); 
+  
+  // 5. مسح حاسبة الكاش
+  document.querySelectorAll('#cashCalc td[contenteditable]').forEach(td => td.textContent = '');
+  recalcCash();
+  
+  // 6. تحديث حالة الإغلاق والزر
+  try{ const s=document.getElementById('sndClose'); s.currentTime=0; s.play(); }catch(e){}
+  const btn=document.getElementById('closeBtn'); 
+  if(btn){ 
+    btn.textContent=`🔒 صندوق الموظف ${currentEmployeeName} مغلق (أضفنا صف جديد)`; // رسالة توضيحية مؤقتة
+    btn.classList.remove('btn-gold'); 
+    btn.classList.add('btn-gray'); 
+    // نعيد الزر لحالته الأصلية بعد فترة
+    setTimeout(() => {
+        if(btn.classList.contains('btn-gray')) {
+            updateCloseButtonText(currentEmployeeName); // إعادة النص الديناميكي
+            btn.classList.remove('btn-gray');
+            btn.classList.add('btn-gold');
+        }
+    }, 3000); 
+  }
+  isClosed=false; 
+});
+
+
+/* ساعة الفوتر */
+function tickNow(){ document.getElementById('dateNow').textContent=new Date().toLocaleString('ar-EG'); }
+tickNow(); setInterval(tickNow,60*1000);
+
+/* بدء التشغيل */
+function initAll(){
+  loadRecords(); // تحميل السجلات القديمة أولاً
+  if (!currentRecordRow) {
+      // إذا لم تكن هناك سجلات، أو لم يتم إنشاء الصف الحالي بعد التحميل، أنشئ صفاً جديداً للبدء
+      createNewRow();
+  }
+  recalc(); 
+  recalcCash();
+  updateCloseButtonText(currentEmployeeName); // تحديث نص الزر عند التحميل الأولي
+}
+window.addEventListener('load', initAll);
+
+/* زر التصدير */
+document.getElementById('exportBtn').addEventListener('click',exportMain);
+</script>
+</body>
+</html>
